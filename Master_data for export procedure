@@ -1,0 +1,90 @@
+USE [ASQ_Base]
+GO
+
+/****** Object:  StoredProcedure [dbo].[sp_Master_Running0MM]    Script Date: 6/16/2023 4:48:51 PM ******/
+SET ANSI_NULLS ON
+GO
+
+SET QUOTED_IDENTIFIER ON
+GO
+
+CREATE proc [dbo].[sp_Master_Running0MM] (@Start_dt date, @End_dt Date)
+As
+begin
+
+Select Vender=g04pm.VENDOR,smd.Work_order_No, smd.Creation_Date, smd.Call_Type, 
+DOA_Type= case when doaewp.Status_DOA is Not null then doaewp.Status_DOA else smd.DOA_Type end,
+smd.Valid_Invalid, smd.Service_Centre_Code, 
+smd.Warranty, smd.Customer_Name, smd.Customer_Contact_Number, IMEI_Number=smd.IMEI_No, 
+g04pm.Model_Name,g04pm.Actual_Model, g04pm.CATEGORY, 
+gt.Master_Code,
+
+Tagging=Case 
+When g01fg.FG_Code is null then 'Counter Failure'
+when s03mbc.MBC_Calls='Yes' then 'MBC' 
+when gac.Action_Code_md='FREE SCREEN REPLACED' then 'FSR'
+When  g07spt.S_Status='No' then 'Damaged'
+when smd.Part_HW='Yes' then 'Hardware'
+when smd.Part_Status='Acces' then 'Acces'
+--Action_Code--
+when gac.Action_Code_md='CUSTOMER EDUCATION' or gac.Action_Code_md='NO FAULT FOUND SOFTWARE DONE' 
+Or gac.Action_Code_md='RETURN WITHOUT REPAIR'  Then 'Others'
+--Fauld Code--
+when nfc.New_Fault_Code='FORGET PATTERN LOCK' or nfc.New_Fault_Code='PATTERN LOCK' or
+nfc.New_Fault_Code='SW ANDROID VERSION UPDATE'  or nfc.New_Fault_Code='SW UPDATE ON CUSTOMER REQUEST' Then 'Others'
+When gac.Action_Code_md='FAULT CORRECTED SOFTWARE DONE' then 'Software' 
+When nfc.New_Fault_Code='CHARGER NOT WORKING' Then 'Acces'
+When nfc.New_Fault_Code='Data cable' Then 'Acces' else  gt.Tagging end,
+
+smd.Serial_Number,  g07spt.New_Symptom_Description, smd.Problem_Reported_ByCustomer, 
+nfc.New_Fault_Code, gt.New_Action_Code,
+smd.Delivery_Date, smd.FG_Code, smd.RF_Call, smd.ELS_Status, New_Launch_Date=g04pm.New_Launch_Date, 
+Part_Consumed=smd.Part_Code, g05bom.Part_Name,
+g03asp.Service_Center_Name, g03asp.State, g03asp.City,
+
+C3_Calls=Case when smd.DOA_Type='Special DOA' or smd.DOA_Type is null 
+and doaewp.Status_DOA is null
+then 1 else 0 end,
+
+DOA_Calls=Case when smd.DOA_Type='Special DOA' or smd.DOA_Type is null 
+and doaewp.Status_DOA is null
+then 0 else 1 end,
+
+Rank=ROW_NUMBER() over (Partition by smd.Work_order_No order by smd.Part_Status desc),
+
+Source=Case when right(g01skd.Models,3) is null then 'CBU' else 'SKD' end,
+--Extra Feilds-----
+smd.Forward_Challan_Date, smd.Device_Id,  
+smd.Fault_Code, smd.Action_Code, 
+doaewp.Status_DOA,
+smd.Part_HW, smd.Part_Status From Stage_02_Master smd
+
+--------
+
+inner join Grid_07_Symptom g07spt on smd.Symptom_Code_Description=g07spt.Symptom_Code_Description
+Left join Grid_01_FG g01fg on smd.FG_Code=g01fg.FG_Code
+Left join Grid_02_FG_SKD g01skd on smd.FG_Code=g01skd.FG_Code
+inner join Grid_04_PM g04pm on case when g01skd.Models is null then smd.Model else g01skd.Models end=g04pm.Model
+left join Grid_05_BOM g05bom on smd.Part_Code=g05bom.Part_Code
+left join Grid_03_ASP g03asp on smd.Service_Centre_Code=g03asp.Service_Centre_Code
+Left Join Stage_03_MBC_Calls s03mbc on smd.IMEI_No=s03mbc.IMEI_No
+Left join Grid_06_Action_Code gac on smd.Action_Code=gac.Action_Code_Desc
+Left join Grid_DOA_EWP doaewp on doaewp.Work_Order_No=smd.Work_Order_No
+left join Grid_Fault_Code nfc on g07spt.New_Symptom_Description=nfc.Symptom_Code and isnull(smd.Fault_Code,'NA')=nfc.Fault_Code
+left join Grid_Tagging gt  on nfc.New_Fault_Code=gt.New_Fault_Code and isnull(gac.Action_Code_md,'NA')=gt.New_Action_Code
+Inner join Grid_Model_Status gms on g04pm.Actual_Model=gms.Models
+where smd.Creation_Date between @start_dt and @End_dt and gms.Status_Running='Running'
+
+Update Stage_02_Master set Part_Code='Null'
+where Part_Code='81100017709'
+and Model='LXX501_AGNI_5G'
+
+
+End
+
+
+
+
+GO
+
+
