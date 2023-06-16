@@ -1,0 +1,32 @@
+USE [ASQ_Base]
+GO
+
+/****** Object:  StoredProcedure [dbo].[sp_Snpshot_removed_4200_CWO_No]    Script Date: 6/16/2023 4:52:48 PM ******/
+SET ANSI_NULLS ON
+GO
+
+SET QUOTED_IDENTIFIER ON
+GO
+
+
+CREATE Proc [dbo].[sp_Snpshot_removed_4200_CWO_No](@end date)
+
+As
+Begin
+
+Select fmd.Actual_Model, fmd.Source, fmd.Tagging,fmd.New_Symptom_Description, 
+C3_Calls=sum(fmd.C3_Calls), DOA_Calls=sum(fmd.DOA_Calls)
+From Final_Master_Data fmd
+inner join Grid_Model_Status gms on fmd.Actual_Model=gms.Models
+left join CAG_WO cwo on fmd.Work_order_No=cwo.Work_ORDER_NO
+Where fmd.Rank=1 and fmd.Tagging in ('Hardware','Software','Acces')
+and fmd.CATEGORY in ('XOLO-SMART','LAVA-SMART','LAVA-Feature','LAVA-TABLET')
+and fmd.Creation_Date<=@end and fmd.Work_order_No NOT LIKE '4200%'
+and fmd.Work_order_No NOT IN (select Work_ORDER_NO from CAG_WO)
+Group by  fmd.Actual_Model, fmd.Source, fmd.Tagging, fmd.Tagging,fmd.New_Symptom_Description
+
+End
+
+GO
+
+
