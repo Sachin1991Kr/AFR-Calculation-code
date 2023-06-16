@@ -1,0 +1,183 @@
+USE [ASQ_Base]
+GO
+
+/****** Object:  StoredProcedure [dbo].[Prod_Stage_Master]    Script Date: 6/16/2023 4:45:48 PM ******/
+SET ANSI_NULLS ON
+GO
+
+SET QUOTED_IDENTIFIER ON
+GO
+
+
+CREATE Proc [dbo].[Prod_Stage_Master](@start_dt Date, @End_dt date)
+As
+Begin
+
+Exec Prod_01_Part @start_dt, @End_dt
+
+update tbl_01_Master_Data set Model='KKTPEARLFM_17' 
+where FG_Code in ('111LFMFKPFM17C', '111LFMFKPFM17BS', '1113DGKPFM17C', '111LFMFKPFM17SB', '1113DGKPFM17SB', 
+'1113DGKPFM17BS','1113DGKPFM17SBGO','111LFMFKPF17RG','111LFMFKPF17BSG')
+and Model<>'KKTPEARLFM_17'
+
+
+update tbl_01_Master_Data set Model='A1_JOSH2021' 
+where FG_Code in ('111LFMFA1J21BSDGO',
+'D111LFMFA1J21BLSA',
+'D111LFMFA1J2021BS',
+'R111LFMFA1J21BSPD',
+'D111LFMFJ2021BSP',
+'D111LFMFA1J21BSPD',
+'D111LFMFA1J2BGD',
+'R111LFMFA1J21BGL',
+'R111LFMFA1J2021BS',
+'111LFMFA1J21BSLGO')
+and Model<>'A1_JOSH2021'
+
+update tbl_01_Master_Data set Model='LF1000_A1_2021' 
+where FG_Code in ('111LFMFA121CBL',
+'111LFMFA121BSL',
+'111LFMFA121WL',
+'111LFMFA121BGL',
+'111LFMFA121BGTL')
+and Model<>'LF1000_A1_2021'
+
+
+update tbl_01_Master_Data set Model='HERO_600+_LITE' 
+where FG_Code in ('111LFMFH6LBGR',
+'111LFMFH6LTBGR',
+'111LFMFH6LBGRGO',
+'111LFMFH6LTSGRGO',
+'D111LFMFH6LBGR')
+and Model<>'HERO_600+_LITE'
+
+update tbl_01_Master_Data set Model='LZG402_Z21' 
+where FG_Code in ('111LSMFLZ21B',
+'111LSMFLZ21C',
+'D111LSMFLZ21B',
+'111LSMFLZ21CHS',
+'D111LSMFLZ21C')
+and Model<>'LZG402_Z21'
+
+update tbl_01_Master_Data set Model='LE000Z93P_Z2_3GB' 
+where FG_Code in ('111LSMFLEZ23GBFR',
+'111LSMFLEZ23GBAB',
+'R111LSMFLEZ23GBAB',
+'R111LSMFLEZ23GBFR')
+and Model<>'LE000Z93P_Z2_3GB'
+
+update tbl_01_Master_Data set Model='LF9000_GEMPOWER' 
+where FG_Code in ('111LFMFLF90GEB',
+'111LFMFLF90GEBGD',
+'111LFMFL9GPWBGD',
+'111LFMFL9GPWBL')
+and Model<>'LF9000_GEMPOWER'
+
+update tbl_01_Master_Data set Model='HERO_600I' 
+where FG_Code in ('111LFMFH600IBGR',
+'111LFMFH600IBGS',
+'111LFMFH600ISB',
+'111LFMFH600ISBS',
+'111LFMFH600IMGS',
+'111LFMFH600IMGR',
+'111LFMFH600ILBGS',
+'111LFMFH600ILSBS',
+'111LFMFH6IBGR',
+'111LFMFH6IBGB',
+'111LFMFH6IMGB',
+'111LFMFH6IMGR',
+'111LFMFH6ISBB',
+'111LFMFH6ISBL')
+and Model<>'HERO_600I'
+
+
+update tbl_01_Master_Data set Model='HERO_600+_LITE' 
+where FG_Code in ('111LFMFH6LBGR',
+'111LFMFH6LTBGR')
+and Model<>'HERO_600+_LITE'
+
+update tbl_01_Master_Data set Model='IL1802_MOTOA10E' 
+where FG_Code in ('501MFMFA10EDBL',
+'501MFMFA10ERGD')
+and Model<>'IL1802_MOTOA10E'
+
+
+update tbl_01_Master_Data set Model='A1_JOSH_BOL' 
+where FG_Code in ('111LFMFA1JBBGD',
+'111LFMFA1JBBS')
+and Model<>'A1_JOSH_BOL'
+
+
+--update Action code when Action is null
+update sm
+set sm.Action_Code=ma.Action_Code
+from tbl_01_Master_Data sm
+inner join Grid_Map_Action_Code ma on sm.Work_order_No=ma.Work_Order_No
+Where sm.Action_Code is null
+
+
+--update fault code when Fault is null
+update sm
+set sm.Fault_Code=ma.Fault_code
+from tbl_01_Master_Data sm
+inner join Grid_Map_Action_Code ma on sm.Work_order_No=ma.Work_Order_No
+Where sm.Fault_Code is null
+
+
+--Map Hardware Tagging when changed part more 1
+Select spd.Work_Order_No, Part_HW='Yes' into #Consume_HW From Stage_01_Part_Data spd
+Where spd.Part_Status='Hardware'and spd.Creation_Date between @Start_dt and @End_dt Group by spd.Work_Order_No
+
+--Map Acces Tagging when changed part more 1
+Select spd.Work_Order_No, spd.Part_Code, spd.Part_Status into #part_cons From Stage_01_Part_Data spd
+Where spd.Creation_Date between @Start_dt and @End_dt 
+
+delete Stage_02_Master where creation_Date between @Start_dt and @End_dt
+insert into Stage_02_Master
+Select distinct md.Work_order_No, md.Creation_Date, md.Call_Type, md.Valid_Invalid, md.DOA_Type, md.Service_Centre_Code, md.Warranty,
+md.Customer_Name, md.Customer_Contact_Number, md.Model, md.IMEI_No, md.Serial_Number, md.Symptom_Code_Description, 
+md.Problem_Reported_ByCustomer, md.Fault_Code, md.Action_Code, md.Delivery_Date, md.FG_Code, md.RF_Call,
+md.Forward_Challan_Date, Md.ELS_Status, hw.Part_HW, pcons.Part_Code, pcons.Part_Status,Md.Device_Id
+From tbl_01_Master_Data md
+Left join #Consume_HW hw on md.Work_order_No=hw.Work_Order_No
+Left join #part_cons pcons on md.Work_order_No=pcons.Work_Order_No
+Where md.Creation_Date between @Start_dt and @End_dt
+
+
+--Create table MBC_Calls Tables--
+Delete Stage_03_MBC_Calls where Creation_Date between @Start_dt and @End_dt
+insert into Stage_03_MBC_Calls
+Select Distinct smd.IMEI_No, smd.Call_type, smd.Creation_date,MBC_Calls='Yes' From Stage_02_Master smd
+Left join Stage_03_MBC_Calls  mbc on smd.IMEI_No=mbc.IMEI_No
+Where smd.Call_Type='ZX' and smd.Creation_Date between @Start_dt and @End_dt
+and mbc.IMEI_No is null
+
+update Stage_02_Master
+set Symptom_Code_Description='CAN’T STORE CAMERA PICTURE' 
+Where Symptom_Code_Description like '%T STORE CAMERA PICTURE'
+
+update Stage_02_Master
+set Fault_Code='CAN’T STORE CAMERA PICTURE' 
+Where Fault_Code like '%T STORE CAMERA PICTURE'
+
+-----Create New NFF------
+update Stage_02_Master
+set Action_Code='CUSTOMER EDUCATION' 
+Where Action_Code like '%NFF CUSTOMER EDUCATION'
+
+update Stage_02_Master
+set Action_Code='NO FAULT FOUND SOFTWARE DONE' 
+Where Action_Code like '%NFF SOFTWARE UPGRADE DONE'
+
+update Stage_02_Master
+set Action_Code='NO FAULT FOUND SOFTWARE DONE' 
+Where Action_Code like '%EXTERNAL CLEAN AND NFF SW DONE'
+
+update Stage_02_Master
+set Action_Code='CUSTOMER EDUCATION' 
+Where Action_Code like '%HANDSET DIAGNOSIS'
+
+update Stage_02_Master
+set Action_Code='FAULT CORRECTED SOFTWARE DONE' 
+Where Action_Code like 'LATEST SOFTWARE UPGRADE%'
+End
