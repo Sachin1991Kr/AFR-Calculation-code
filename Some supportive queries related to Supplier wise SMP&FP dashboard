@@ -1,0 +1,310 @@
+1-
+Create Table tbl_01_Master_data(Work_order_No varchar(50),Creation_Date datetime,Call_Type varchar(50),Valid_Invalid varchar(30)
+,DOA_Type varchar(50),Service_Centre_Code varchar(30),Warranty varchar(30),Customer_Name varchar(60),
+Customer_Contact_Number varchar(20),Model varchar(30),IMEI_No varchar(30),Serial_Number varchar(30),
+Symptom_Code_Description varchar(200),Problem_Reported_ByCustomer varchar(200),Fault_Code varchar(60),
+Action_Code varchar(60),Delivery_Date datetime,Part_Code varchar(30),FG_Code varchar(40),
+RF_Call varchar(10),Forward_Challan_Date datetime,Device_Id varchar(20),ELS_Status varchar(10))
+
+
+------------------------------------------------------------------------------------------------------------
+2-
+SELECT * INTO [dbo].[tbl_01_Master_Data]
+FROM [Temp1].[dbo].[tbl_01_Master_data00]
+
+-------------------------------------------------------------------------------------
+
+Element->parimary data-> Sap(project)->ZPsale then
+
+select the FGcode(uniquely) and paste it in sap material_code with required date.
+
+After that run the codes(F8 use) then export the data right click(select spreed sheet)
+
+
+
+
+------------------------------------------------------------------------------------------------------
+
+SQL Cmd for Instant Backup restore:
+
+1-
+USE [master]
+RESTORE DATABASE [ASQ_base] FROM  DISK = N'D:\ASQ_DB backup\New folder\ASQ_Base01' WITH  FILE = 1,  MOVE N'ASQ_Base' TO N'C:\Program Files\Microsoft SQL Server\MSSQL11.SQLEXPRESS\MSSQL\DATA\ASQ_base.mdf',  MOVE N'ASQ_Base_log' TO N'C:\Program Files\Microsoft SQL Server\MSSQL11.SQLEXPRESS\MSSQL\DATA\ASQ_base_log.ldf',  KEEP_REPLICATION,  NOUNLOAD,  REPLACE,  STATS = 5
+
+GO
+
+
+2-
+USE [master]
+RESTORE DATABASE [LAVA_IMS] FROM  DISK = N'D:\SQL DB backups\LAVA_IMS' WITH  FILE = 1,  KEEP_REPLICATION,  NOUNLOAD,  REPLACE,  STATS = 5
+
+GO
+
+
+
+
+-----------------------------------------------------------------------------------------------------------
+
+
+SELECT [ID]
+      ,[SN_MODEL]
+      ,[COLOR_CODE]
+      ,[SN_BARCODE]
+      ,[Accessories_Barcode]
+      ,[Acc_Type]
+      ,[SCAN_BY]
+      ,[SCAN_ON]
+      ,[LINE_CODE]
+      ,[MATERIAL_CODE]
+      ,[ACC_CODE]
+      ,[USER_HOST_NAME]
+  FROM [LAVA_IMS].[dbo].[tbl_Accessories_Scanning]
+  
+  
+  --------------------------------------------------------------------------------------------------------
+  
+  SELECT bt.SN_MODEL
+      ,mt.MODEL_NAME
+      ,bt.SN_BARCODE
+      ,bt.Accessories_Barcode
+      ,bt.Acc_Type
+      ,bt.SCAN_BY
+      ,bt.SCAN_ON
+      ,bt.LINE_CODE
+      ,bt.MATERIAL_CODE
+  FROM [LAVA_IMS].[dbo].[tbl_Accessories_Scanning] bt
+  join [LAVA_IMS].[dbo].[tbl_ModelMaster] mt on bt.SN_MODEL=mt.SN_MODEL
+  where bt.Acc_Type in()
+  
+  
+  -----------------------------------------------------------------------------------------------------------------
+  
+  
+  
+  USE [Temp]
+GO
+
+/****** Object:  StoredProcedure [dbo].[Prod_Stage_Master]    Script Date: 5/19/2022 11:11:13 PM ******/
+SET ANSI_NULLS ON
+GO
+
+SET QUOTED_IDENTIFIER ON
+GO
+
+CREATE procedure [FB_Battery_Procedure] 
+
+AS
+
+BEGIN
+alter table [Temp].[dbo].[FP_Battery] add Supplier varchar(20) not null;
+alter table [Temp].[dbo].[FP_Battery] add Rating varchar(10) not null;
+
+
+
+Update [Temp].[dbo].[FP_Battery] 
+Set Rating=Left([Accessories_Barcode],4)
+
+
+
+Update [Temp].[dbo].[FP_Battery] 
+SET Supplier=mid([Accessories_Barcode],5,2)
+where Supplier= Case 
+when Supplier='BB' then [Bharti Baddi]
+when Supplier='AI' then [Adit infratel]
+when Supplier='IG' then [IGR Phenix]
+when Supplier='AS' then [Aerospace]
+when Supplier='BN' then [Bharti Noida]
+when Supplier='TM' then [TMB Noida]
+when Supplier='VE' then [Veken]
+else other
+
+
+END
+GO
+
+  
+  
+-----------------------------------------------------------------------------------------------
+
+select X.* into total_tbl FROM (SELECT * FROM [Temp].[dbo].[models]
+WHERE KEY_TYPE IN('Charger','Battery_Removable')
+
+UNION 
+
+SELECT * FROM [Temp].[dbo].[Charger_Bt]
+WHERE KEY_TYPE IN('Charger','Battery_Removable'))X
+
+
+
+----------------------------------------------------------------------------------
+
+select X.* into [Temp].[dbo].[Josh_raw] from
+(SELECT b.[SN_MODEL]
+      ,a.[SN_BARCODE]
+      ,a.[Accessories_Barcode]
+      ,a.[Acc_Type]
+      ,a.[SCAN_ON]
+      ,a.[LINE_CODE]
+  FROM [LAVA_IMS].[dbo].[tbl_Accessories_Scanning] a
+  join [LAVA_IMS].[dbo].[tbl_ModelMaster] b on a.SN_MODEL=b.SN_MODEL
+  where a.SN_MODEL='118'
+  and a.Acc_Type='Battery_Removable') X
+
+
+---------------------------------------------------------------------------------------
+
+update [Temp_FP_dsh_backup] set [Temp_FP_dsh_backup].SDATE = [New_Ter_FPBT].SDATE
+From [New_Ter_FPBT]  
+inner Join [Temp_FP_dsh_backup] on [Temp_FP_dsh_backup].IMEI1=[New_Ter_FPBT].SERNR
+where [Temp_FP_dsh_backup].SDATE is null
+
+
+
+
+SELECT dbo_View_FP_Before_After.Accessories_Barcode AS Expr1, dbo_View_FP_Before_After.MODEL_NAME AS Expr2, dbo_View_FP_Before_After.Supplier2 AS Expr3, dbo_View_FP_Before_After.[cell supplier2] AS Expr4, dbo_View_FP_Before_After.Rating AS Expr5, dbo_View_FP_Before_After.IMEI1 AS Expr6, dbo_View_FP_Before_After.SDATE AS Expr7, dbo_View_FP_Before_After.Pdate AS Expr8, dbo_View_FP_Before_After.Mkt_date AS Expr9
+FROM dbo_View_FP_Before_After;
+
+
+
+----------------------------------------------------------
+SELECT  MODEL_NAME,
+ IMEI1
+FROM [FP_waterFall_TBL]
+GROUP BY MODEL_NAME,IMEI1
+HAVING COUNT(IMEI1) >1;
+-----------------------------------------------------------------
+
+
+update EMP_salary 
+set EMP_salary.Salary = 4000
+From EMP_salary
+inner JOIN Emp_tbl 
+ON Emp_tbl.Empid=EMP_salary.EmpId 
+where Emp_tbl.EmpName='Isha'
+
+
+select X.* into [SKR].[dbo].[NewFB_bt] from
+(SELECT a.* FROM [SKR].[dbo].[FB_DSH_tbl] a
+  left join [SKR].[dbo].[IMEI_Data] b on a.IMEI1=b.SERNR) X
+
+
+
+------------------------------------------------------------------------------
+  select X.* into [Temp].[dbo].[Fb_charger_M] from (SELECT bt.SN_MODEL
+      ,mt.MODEL_NAME
+      ,bt.SN_BARCODE
+      ,bt.Accessories_Barcode
+      ,bt.Acc_Type
+      ,bt.SCAN_BY
+      ,bt.SCAN_ON
+      ,bt.LINE_CODE
+      ,bt.MATERIAL_CODE
+  FROM [LAVA_IMS].[dbo].[tbl_Key_Scanning] bt
+  join [LAVA_IMS].[dbo].[tbl_ModelMaster] mt on bt.SN_MODEL=mt.SN_MODEL
+  where bt.Acc_Type in('Charger')
+  and bt.SN_MODEL in('93',
+'106',
+'118',
+'105',
+'145',
+'107',
+'133',
+'173',
+'158',
+'140',
+'139',
+'142',
+'138',
+'164')) X
+
+
+----------------------------------------------------------------------------------------------------
+
+SELECT Model_Name,Supplier2,Max(Aging) as Max_Aging
+FROM [SKR].[dbo].[FP_DSH_tbl]
+where aging is not null
+group by Model_Name,Supplier2
+
+--------------------------------------------------------------
+
+update [FP_DSH_tbl] set [FP_DSH_tbl].[Aging]=datediff(day,Launch_date,Mkt_date)
+where [FP_DSH_tbl].[Aging] is null
+
+(SELECT datediff(day,Launch_date,Mkt_date) as Aging from [FP_DSH_tbl])
+
+------------------------------------------------------------------------------------------
+
+SELECT [SN_BARCODE]
+      ,[Accessories_Barcode]
+      ,[Supplier2]
+      ,[cell supplier2]
+FROM [Temp].[dbo].[Map_cell_supplier]
+
+
+update [Temp_FP_dsh_backup] set [Temp_FP_dsh_backup].[cell supplier2] = 'XS' From [Map_cell_supplier]
+Join [Temp_FP_dsh_backup] on [Temp_FP_dsh_backup].[Accessories_Barcode]=[Map_cell_supplier].[Accessories_Barcode]
+
+
+
+select X.* into [Temp].[dbo].[Temp_FP_dsh_backup] from
+(SELECT [SN_BARCODE]
+      ,[MODEL_NAME]
+      ,[Accessories_Barcode]
+      ,[Acc_Type]
+      ,[SCAN_ON]
+      ,[LINE_CODE]
+      ,[Supplier2]
+      ,[cell supplier2]
+      ,[Rating]
+      ,[IMEI1]
+      ,[SDATE]
+      ,[Prod_date]
+      ,[Market call]
+      ,[Mkt_date]
+      ,[Launch_date]
+      ,[Aging]
+  FROM [SKR].[dbo].[FP_DSh_Batty]) X
+
+
+
+----------------------------------------------------------------------------------------------------Hero 600I
+
+/****** Script for SelectTopNRows command from SSMS  ******/
+SELECT [MODEL_NAME],count([Prod_date]) as Prod_count,count([SDATE]) as Ter_count 
+FROM [Temp].[dbo].[Temp_FP_dsh_backup]
+where [MODEL_NAME] in('A1 2021','A1 super 2021','A1 josh 2021')
+and Prod_date between '2021-01-01' and '2022-06-01'
+group by [MODEL_NAME]
+
+
+----------------------------------------------------------------
+
+SELECT [MODEL_NAME]
+      ,count([Prod_date]) as Prod
+	  ,count([SDATE]) as Ter
+      ,count([Mkt_date]) as Mart
+  FROM [Temp].[dbo].[Temp_FP_dsh_backup]
+  where [MODEL_NAME] in('A1 josh 2021')
+  and [Prod_date] between '2021-08-01' and '2021-08-31'
+  group by [MODEL_NAME]
+
+
+-------------------------------------------====================--------------------
+
+Delete existing tables rows from the rownumber function:
+
+WITH cte AS (
+    select Sn_barcode,IMEI1,prod_date, row_number() over(Partition by prod_date,sn_barcode,IMEI1 order by sn_barcode) rownum
+from [Temp_FP_dsh_backup]
+)
+DELETE FROM cte
+WHERE rownum > 1;
+
+-------------------------------------------------------============================
+
+
+/****** Script for SelectTopNRows command from SSMS  ******/
+select X.* into [Testing].[dbo].[Hero_600Plus] from
+(SELECT Model_Name,Sn_Barcode,Accessories_Barcode,Supplier2,[Cell Supplier2],IMEI1,Prod_date,Sdate as Ter_date,Mkt_date
+  FROM [Temp].[dbo].[Temp_FP_dsh_backup]
+  where Model_Name='H2') X
